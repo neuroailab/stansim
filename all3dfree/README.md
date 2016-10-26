@@ -1,15 +1,15 @@
 #Installation
 
-Install scrapy:
+**Install scrapy:**
 
 `pip install scrapy`
 
 #Run
 
-- Specify the download folder:
+**Specify the download folder:**
 
-Change the download folder in [all3dfree_spider.py](https://github.com/neuroailab/stansim/blob/master/all3dfree/all3dfree/spiders/all3dfree_spider.py#L6) 
+Change the download folder in [all3dfree/spiders/all3dfree_spider.py](https://github.com/neuroailab/stansim/blob/master/all3dfree/all3dfree/spiders/all3dfree_spider.py#L6) 
 
-- Run scrapy while in the main all3dfree folder:
+**Run scrapy while in the main all3dfree folder:**
 
 `scrapy crawl all3dfree`
