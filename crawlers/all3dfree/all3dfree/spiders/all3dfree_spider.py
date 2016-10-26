@@ -2,7 +2,7 @@ import scrapy
 import os.path
 
 class All3DFreeSpider(scrapy.Spider):
-    name="all3dfree"
+    name = 'all3dfree'
     download_dir = '/home/mrowca/crawler/all3dfree/downloads/'
     total_number_of_assets = 0
 
