@@ -6,7 +6,8 @@ secret = ENV["CGTRADER_SECRET"]
 base_url = "https://api.cgtrader.com/"
 
 client = OAuth2::Client.new(client_id,
-                            secret, site: base_url)
+                            secret, 
+			    site: base_url)
 
 access_token = client.client_credentials.get_token
 
