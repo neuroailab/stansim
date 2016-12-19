@@ -1,3 +1,4 @@
+#this is based on the cgtrader API at https://api.cgtrader.com/docs/index.html
 require 'oauth2'
 
 client_id = ENV["CGTRADER_ID"]
