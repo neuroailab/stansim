@@ -6,7 +6,6 @@ from rauth import OAuth2Service
 base_url = "https://api.cgtrader.com"
 client_id = os.environ['CGTRADER_ID']
 client_secret = os.environ['CGTRADER_SECRET']
-redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
 				
 
 class CGTraderClient():
