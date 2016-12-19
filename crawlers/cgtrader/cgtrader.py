@@ -1,3 +1,6 @@
+"""Illustrative use of CGTrader API
+based on https://api.cgtrader.com/docs/index.html
+"""
 import json
 import os
 
