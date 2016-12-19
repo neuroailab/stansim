@@ -9,7 +9,7 @@ client_secret = os.environ['CGTRADER_SECRET']
 redirect_uri = "urn:ietf:wg:oauth:2.0:oob"
 				
 
-class ExampleOAuth2Client:
+class CGTraderClient():
     def __init__(self):
         self.access_token = None
 
@@ -21,9 +21,7 @@ class ExampleOAuth2Client:
             base_url="https://api.cgtrader.com",
         )
 
-        self.get_access_token()
-
-    def get_access_token(self):
+    def test_api(self):
         data = {
                 'grant_type': 'client_credentials',
                 'redirect_uri': '..'
@@ -32,9 +30,14 @@ class ExampleOAuth2Client:
         session = self.service.get_auth_session(data=data, decoder=json.loads)
 
         self.access_token = session.access_token
+
+        res = session.get('/v1/models',
+                          params = { "keywords": "auto",
+                                     "per_page": 100}).json()
+
+        print(len(res['models']))
         
-        print(self.access_token)
         
 if __name__ == '__main__':
-	A = ExampleOAuth2Client()
-	A.get_access_token()
+    A = CGTraderClient()
+    A.test_api()
