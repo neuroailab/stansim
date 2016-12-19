@@ -1,3 +1,4 @@
+import subprocess
 import os
 import time
 import numpy as np
@@ -24,12 +25,20 @@ def get_models(i):
 
     model_hrefs = [model_base + '/' + x.findAll('a')[1].attrs['href'].split('/')[-1] for x in soup.findAll('table', 'preview-pad')[0].findAll('td')]
     data_hrefs = [data_base + '/' + x.findAll('a')[1].attrs['href'].split('/')[-1] for x in soup.findAll('table', 'preview-pad')[0].findAll('td')]
+
+    print(model_hrefs)
     
     reg = re.compile('location: ([\S]+)')
 
     for h, d in zip(model_hrefs, data_hrefs):
         hs = h.split('/')[-1].split('.')[0]
-        os.system("curl -vs -x  proxy.crawlera.com:8010 -U %s: %s &> /dev/stdout | tee -a %s.out" % (KEY, h, hs))
+        print(KEY, h, hs)
+        #os.system("curl -vs -x  proxy.crawlera.com:8010 -U %s: %s &> /dev/stdout | tee -a %s.out" % (KEY, h, hs))
+        os.system("curl -vs -x  proxy.crawlera.com:8010 -U %s: %s 2> %s.out" % (KEY, h, hs))
+        #args = ['curl', '-vs', '-x', 'proxy.crawlera.com:8010', '-U', KEY + ':', h, '&>', '/dev/stdout', '|', 'tee', '-a', hs + '.out']
+        #proc = subprocess.Popen(args)
+        #proc.wait()
+
         s = open(hs + '.out', 'rU').read()
         url = reg.search(s).groups()[0]
         os.system('wget %s -O %s.zip' % (url, hs))
@@ -45,6 +54,7 @@ def get_models(i):
         with open('%s.json' % hs, 'w') as _f:
             json.dump(data, _f)
         
-        
-    
-
+import sys
+if __name__ == '__main__':
+    thing = int(sys.argv[1])
+    get_models(thing)
