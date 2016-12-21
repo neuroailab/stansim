@@ -76,30 +76,11 @@ class CGTraderClient():
         else:
             res = None
         
-        for i in res["files"]:
-            print i
-        
         return res
 
-    def get_model_files_list(self, modelID):
-        data = {
-            'grant_type': 'client_credentials',
-            'redirect_uri': '..'
-        }
-        
-        session = self.service.get_auth_session(data=data, decoder=json.loads)
-        
-        self.access_token = session.access_token
-        
-        res = session.get("/v1/models/%i/files" % modelID,params = { "model_id" : "%i" % modelID })
-
-        print res.url
-        print res.status_code
-        # print res.text
 
 
-
-    def get_model_file(self,modelID,fileID):
+    def save_model_file(self,modelID,fileID, fileName):
         data = {
             'grant_type': 'client_credentials',
             'redirect_uri': '..'
@@ -110,11 +91,12 @@ class CGTraderClient():
         self.access_token = session.access_token
 
         res = session.get("/v1/models/%i/files/%i" % (modelID,fileID),
-                          params = {"model_id" : "%i" % modelID, "id": "%i" % fileID})
-
-        print res.status_code
-        print res.is_redirect
-        print res.text
+                          params = {"model_id" : "%i" % modelID, "id": "%i" % fileID}, stream=True)
+        
+        with open(fileName, 'wb') as f:
+            for chunk in res.iter_content(chunk_size=1024):
+                if chunk: # filter out keep-alive new chunks
+                    f.write(chunk)
 
 
 
@@ -122,7 +104,13 @@ class CGTraderClient():
 if __name__ == '__main__':
     A = CGTraderClient()
     # A.test_api()
-    # A.list_categories()
+    A.list_categories()
+
     mdl = A.get_model(11)
-    A.get_model_files_list(11)
-    A.get_model_file(11,24)
+    
+    # for fileEntry in mdl["files"]:
+    #    print fileEntry
+    #    A.save_model_file(mdl["id"],fileEntry["id"],fileEntry["name"])
+
+    # A.get_model_files_list(77169)
+    # A.get_model_file(77169,24)
