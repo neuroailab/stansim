@@ -1,0 +1,6 @@
+
+s_meshFilenames[0] = "./data/dabrovic-sponza/sponza.obj";
+
+s_imageWidth = 640;		// render width
+s_imageHeight = 480;	// render height
+s_cameraFov = 60.0f; 	// degrees
