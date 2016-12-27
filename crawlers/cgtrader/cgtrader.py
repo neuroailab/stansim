@@ -3,12 +3,15 @@ based on https://api.cgtrader.com/docs/index.html
 """
 import json
 import os
+import sys
 
 from rauth import OAuth2Service		  
 						  
 base_url = "https://api.cgtrader.com"
 client_id = os.environ['CGTRADER_ID']
 client_secret = os.environ['CGTRADER_SECRET']
+
+db_dir = './'
 				
 
 class CGTraderClient():
@@ -39,6 +42,29 @@ class CGTraderClient():
 
         print(len(res['models']))
 
+    def search_models(self, category_id):
+        data = {
+            'grant_type': 'client_credentials',
+                'redirect_uri': '..'
+            }
+        
+        session = self.service.get_auth_session(data=data, decoder=json.loads)
+        
+        self.access_token = session.access_token
+        
+        res = session.get('/v1/models',
+                          params = { "min_price": "0",
+                                     "max_price": "0",
+                                     "category_id": "%i" % category_id,
+                          "per_page": 1000000000}).json()
+            
+        # for m in res["models"]:
+        # print m
+        # break
+
+        return res["models"], res["total"]
+
+
     def list_categories(self):
         data = {
             'grant_type': 'client_credentials',
@@ -51,8 +77,8 @@ class CGTraderClient():
         
         res = session.get('/v1/categories').json()
 
-        for i in res['categories']:
-            print i
+        # for i in res['categories']:
+        #    print i
 
         return res['categories']
 
@@ -104,9 +130,43 @@ class CGTraderClient():
 if __name__ == '__main__':
     A = CGTraderClient()
     # A.test_api()
-    A.list_categories()
+    categories = A.list_categories()
 
-    mdl = A.get_model(11)
+    # Get all categories
+    for cat in categories:
+        # Get all models in a category
+        models, count = A.search_models(cat["id"])
+        print "Found %i models in %s category." % (count,cat["title"])
+        
+        for mdl in models:
+            # Create a directory to save the model data
+            saveDir = os.path.join(db_dir,"%i" % mdl["id"])
+            if os.path.isdir(saveDir) == False:
+                os.makedirs(saveDir)
+            
+                sys.stdout.write("Saving model %i to %s ... " % (mdl["id"], saveDir))
+                sys.stdout.flush()
+            
+                # Dump the json data structure
+                jsonFile = os.path.join(saveDir,'model.json')
+                with open(jsonFile,'w') as outFile:
+                    json.dump(mdl,outFile)
+            
+                # Save all the files for a given model
+                for fls in mdl["files"]:
+                    fName = os.path.join(saveDir,fls["name"])
+                    A.save_model_file(mdl["id"],fls["id"],fName)
+
+                print "Done!"
+                
+            
+            else:
+                # If the directory exists, skip downloading the model.
+                print "Model %i already downloaded." % mdl["id"]
+
+    
+
+    # mdl = A.get_model(11)
     
     # for fileEntry in mdl["files"]:
     #    print fileEntry
