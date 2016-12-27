@@ -13,11 +13,32 @@ Visualizer::~Visualizer()
 
 void Visualizer::init(ApplicationData& app)
 {
-	std::cout << "loading scene... ";
-	std::vector < std::string > meshFilenames = GlobalAppState::get().s_meshFilenames;
-	m_scene.init(app.graphics, meshFilenames);
+	
+	
+	Directory dir(GlobalAppState::get().s_sourcePath);
+	std::vector< std::string > meshFiles;
+	for (const std::string& d : dir.getDirectories()) {
+		Directory subDir(dir.getPath() + "/" + d + "/" + "obj");
+		std::cout << subDir.getPath() << std::endl;
+		
+		const auto& objFiles = subDir.getFilesWithSuffix(".obj");
+		if (objFiles.size() != 1) {
+			continue;
+		}
+		meshFiles.push_back(subDir.getPath() + "/" + objFiles[0]);
+	}
 
-	std::cout << "done!" << std::endl;
+	{
+		//just load the first one
+		std::cout << "loading scene... ";
+		std::vector < std::string > meshFilenames;
+		meshFilenames.push_back(meshFiles[0]);
+		m_scene.init(app.graphics, meshFilenames);
+		std::cout << "done!" << std::endl;
+	}
+
+	
+	
 
 	std::cout << "scene bounds:\n" << m_scene.getBoundingBox() << std::endl;
 

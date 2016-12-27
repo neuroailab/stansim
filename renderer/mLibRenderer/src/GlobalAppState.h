@@ -9,27 +9,10 @@
 
 
 #define X_GLOBAL_APP_STATE_FIELDS \
-	X(std::vector<std::string>, s_meshFilenames) \
+	X(std::string, s_sourcePath) \
 	X(unsigned int, s_imageWidth) \
 	X(unsigned int, s_imageHeight) \
-	X(float, s_cameraFov) \
-	X(bool, s_addNoiseToDepth) \
-	X(float, s_depthNoiseSigma) \
-	X(bool, s_filterDepthMap) \
-	X(float, s_depthSigmaD) \
-	X(float, s_depthSigmaR) \
-	X(float, s_voxelSize) \
-	X(float, s_depthMin) \
-	X(float, s_depthMax) \
-	X(unsigned int, s_numMaterialsDiffuse) \
-	X(unsigned int, s_numMaterialsSpecular) \
-	X(unsigned int, s_maxTrajectoryLength) \
-	X(unsigned int, s_maxVoxelSamples) \
-	X(unsigned int, s_randomizeLighting) \
-	X(bool, s_randomizeTrajectory) \
-	X(std::string, s_hostReconstructionName) \
-	X(unsigned int, s_hostReconstructionPort) \
-	X(unsigned int, s_listenControlPort)
+	X(float, s_cameraFov)
 
 
 #ifndef VAR_NAME

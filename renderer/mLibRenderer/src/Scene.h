@@ -75,7 +75,7 @@ private:
 	D3D11Texture2D<vec4uc>	m_texture;
 	BoundingBox3f			m_boundingBoxWorld;
 	
-	Materialf			m_material;
+	Materialf				m_material;
 };
 
 

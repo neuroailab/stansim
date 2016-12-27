@@ -18,13 +18,26 @@ void Scene::init(GraphicsDevice& g, const std::vector<std::string>& meshFilename
 
 	for (const std::string& meshFilename : meshFilenames) {
 		MeshDataf meshDataAll = MeshIOf::loadFromFile(meshFilename);
+		mat4f transform = mat4f::scale(1.0f / meshDataAll.computeBoundingBox().getMaxExtent());
+		meshDataAll.applyTransform(transform);
 
 		std::vector< std::pair <MeshDataf, Materialf > > meshDataByMaterial = meshDataAll.splitByMaterial();
 
 		for (auto& m : meshDataByMaterial) {
-
 			MeshDataf& meshData = m.first;
 			Materialf& material = m.second;
+
+			//size_t texcoordSize = meshData.m_FaceIndicesTextureCoords.size();
+			//if (texcoordSize > 0) {
+			//	for (size_t i = 0; i < meshData.m_FaceIndicesVertices.size(); i++) {
+			//		size_t v_v = meshData.m_FaceIndicesVertices[i].size();
+			//		size_t v_t = meshData.m_FaceIndicesTextureCoords[i].size();
+			//		if (v_v != v_t) {
+			//			meshData.clearAttributes();
+			//			break;
+			//		}
+			//	}
+			//}
 
 			MLIB_ASSERT(meshData.isConsistent());
 			if (!meshData.isTriMesh()) {
