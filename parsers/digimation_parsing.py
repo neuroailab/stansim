@@ -215,11 +215,11 @@ def get_hash(dirn):
 
 def get_mtl_ref(opath):
     ostr = open(opath).read()
-    pat = re.compile('mtllib ([\S]+)')
+    pat = re.compile('mtllib (.+\.mtl)')
     res = pat.search(ostr)
     if not res:
         raise MTLError('No mtllib declaration found in %s' % opath)
-    ref = res.groups()[0]
+    ref = res.groups()[0].strip()
     if not ref.endswith('.mtl'):
         raise MTLError('mtllib path in %s is weird: %s' % (opath, ref))
     return ref
@@ -245,7 +245,18 @@ def set_obj_name(name, opath, mpath):
         ostr = ostr.replace(mtln, name + '.mtl')
         with open(opath, 'w') as _f:
             _f.write(ostr)
-        
+
+
+def infer_mtl(objf, mtlf, mtls):
+    objfl = objf.lower()
+    mtlsl = [x.lower() for x in mtls]
+    if objfl in mtlsl:
+        return mtls[mtlsl.index(objfl)]
+    elif len(mtls) == 1:
+        return mtls[0]
+    else:
+        raise NoMTLError('No material could be inferred for %s from %s' % (objf, ', '.join(mtls)))
+
   
 def correct_digimation(dirn, outdir, metapath):
     """
@@ -283,54 +294,61 @@ def correct_digimation(dirn, outdir, metapath):
     mtls = filter(lambda x: x.endswith('.mtl'), lst)
     
     for objf in objs:
-        objf_loc = os.path.split(objf)[1]
-        mtlf = get_mtl_ref(objf)
-        if mtlf not in mtls:
-            assert len(mtls) == 1, mtls
-            mtlf = mtls[0]
-            print('Mtl missing for %s, using %s' % (objf, mtlf))
-        mtlf_loc = os.path.split(mtlf)[1]
-        
-        tmpname = str(np.random.randint(1e8))
-        tmpdir = os.path.join(outdir, tmpname)
-        os.makedirs(tmpdir)
-        hash_files = [objf, mtlf] 
-        for f in hash_files:
-            relname = os.path.relpath(f, start=dirn)
-            newf = os.path.join(tmpdir, relname)
-            shutil.copy(f, newf)
-        hash = get_hash(tmpdir)
-        shutil.rmtree(tmpdir)
-        
-        newdir = os.path.join(outdir, hash)
-        rawdir = os.path.join(newdir, 'raw')
-        objdir = os.path.join(newdir, 'obj')
-        os.makedirs(newdir)
-        os.makedirs(rawdir)
+        try:
+            objf_loc = os.path.split(objf)[1]
+            mtlf = os.path.join(dirn, get_mtl_ref(objf))
+            if mtlf not in mtls:
+                mtlf = infer_mtl(objf, mtlf, mtls)
+                print('Mtl missing for %s, using %s' % (objf, mtlf))
+            mtlf_loc = os.path.split(mtlf)[1]
 
-        relevant_files = filter(lambda x: not x.endswith(('.obj', '.mtl')), lst)
-        relevant_files += [objf, mtlf]
-        for f in relevant_files:
-            relname = os.path.relpath(f, start=dirn)
-            newf = os.path.join(rawdir, relname)
-            _dir = os.path.split(newf)[0]
-            if not os.path.isdir(_dir):
-                os.makedirs(_dir)
-            shutil.copy(f, newf)
-        
-        shutil.copytree(rawdir, objdir)
-        
-        mtl_path = os.path.join(objdir, mtlf_loc)   
-        fix_tex_names(mtl_path, imgdirname="tex", f_verify=True)
-                        
-        obj_path = os.path.join(objdir, objf_loc)
-        set_obj_name(hash, obj_path, mtl_path)
+            tmpname = str(np.random.randint(1e8))
+            tmpdir = os.path.join(outdir, tmpname)
+            os.makedirs(tmpdir)
+            hash_files = [objf, mtlf] 
+            for f in hash_files:
+                relname = os.path.relpath(f, start=dirn)
+                newf = os.path.join(tmpdir, relname)
+                shutil.copy(f, newf)
+            hash = get_hash(tmpdir)
+            shutil.rmtree(tmpdir)
 
-        metapath = os.path.join(newdir, hash + '.json')
-        with open(metapath, 'w') as _f:
-            metarec = {'type': 'digimation',
-                       'original_data': metarec}
-            json.dump(metarec, _f)
+            newdir = os.path.join(outdir, hash)
+            rawdir = os.path.join(newdir, 'raw')
+            objdir = os.path.join(newdir, 'obj')
+            print('Saving %s to new dir: %s' % (objf, newdir))
+            if not os.path.exists(newdir):
+                os.makedirs(newdir)
+            if not os.path.exists(rawdir):
+                os.makedirs(rawdir)
+
+            relevant_files = filter(lambda x: not x.endswith(('.obj', '.mtl')), lst)
+            relevant_files += [objf, mtlf]
+            for f in relevant_files:
+                relname = os.path.relpath(f, start=dirn)
+                newf = os.path.join(rawdir, relname)
+                _dir = os.path.split(newf)[0]
+                if not os.path.isdir(_dir):
+                    os.makedirs(_dir)
+                shutil.copy(f, newf)
+
+            if os.path.exists(objdir):
+                shutil.rmtree(objdir)
+            shutil.copytree(rawdir, objdir)
+
+            mtl_path = os.path.join(objdir, mtlf_loc)   
+            fix_tex_names(mtl_path, imgdirname="tex", f_verify=True)
+
+            obj_path = os.path.join(objdir, objf_loc)
+            set_obj_name(hash, obj_path, mtl_path)
+
+            metapath = os.path.join(newdir, hash + '.json')
+            with open(metapath, 'w') as _f:
+                metarec = {'type': 'digimation',
+                           'original_data': metarec}
+                json.dump(metarec, _f)
+        except (NoMTLError, MTLError, MissingTextureError), e:
+            print(str(e) + (', so NOT converting %s' % objf))
 
 
 if __name__ == '__main__':
