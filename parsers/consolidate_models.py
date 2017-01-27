@@ -8,14 +8,16 @@ import json
 # CGTRADER_PATH = '/Volumes/Stansim/stansim_models/raw_models/download_cgtrader'
 # DIGIMATION_PATH = '/Volumes/Stansim/stansim_models/raw_models/digimation'
 # ARCHIBASE_PATH = '/Volumes/Stansim/stansim_models/raw_models/download_archibase'
+# OPEN3DMODEL_PATH = '/Volumes/Stansim/stansim_models/raw_models/download_open3dmodel'
 
-# DESTINATION_PATH = '/Volumes/Stansim/stansim_models/consolidated_models/'
+# DESTINATION_PATH = '/Volumes/Stansim/stansim_models/consolidated_models'
 
 
 # Kanefsky
 CGTRADER_PATH = '/mnt/falas_stansim/stansim_models/raw_models/download_cgtrader'
 DIGIMATION_PATH = '/mnt/falas_stansim/stansim_models/raw_models/digimation'
 ARCHIBASE_PATH = '/mnt/falas_stansim/stansim_models/raw_models/download_archibase'
+OPEN3DMODEL_PATH = '/mnt/falas_stansim/stansim_models/raw_models/download_open3dmodel'
 
 DESTINATION_PATH = '/mnt/falas_stansim/stansim_models/consolidated_models'
 
@@ -34,7 +36,33 @@ def write_model_json(file,data):
         json.dump(data,data_file)
 
 def consolidate_open3dmodel():
-    None
+
+    formats = os.listdir(OPEN3DMODEL_PATH)
+
+    for format in formats:
+        formatDir = os.path.join(OPEN3DMODEL_PATH,format)
+        files = os.listdir(formatDir)
+
+        for file in files:
+
+            filePath = os.path.join(OPEN3DMODEL_PATH,format,file)
+            hash = get_hash(filePath)
+
+            print "%s : %s" % (file,hash)
+
+            destPath = os.path.join(DESTINATION_PATH,hash,'raw')
+            if not os.path.exists(destPath):
+                print destPath
+                os.makedirs(destPath,0777)
+
+            shutil.copy(filePath,os.path.join(destPath,file))
+
+            json = dict()
+            json["source_website"] = "open3dmodel"
+
+            jsonFile = os.path.join(DESTINATION_PATH,hash,"%s.json" % hash)
+            write_model_json(jsonFile,json)
+
 
 
 
@@ -44,9 +72,9 @@ def consolidate_cgtrader():
     for model in models:
         fullPath = os.path.join(CGTRADER_PATH,model)
         if os.path.isfile(fullPath):
-		continue
+            continue
 
-	hash = get_hash(fullPath)
+        hash = get_hash(fullPath)
         print "%s : %s" % (model,hash)
         
         destPath = os.path.join(DESTINATION_PATH,hash,'raw')
@@ -135,22 +163,23 @@ def consolidate_digimation():
     for model in models:
         fullPath = os.path.join(DIGIMATION_PATH,model)
         if os.path.isfile(fullPath):
-		continue
-	hash = get_hash(fullPath)
+            continue
+
+        hash = get_hash(fullPath)
         print "%s : %s" % (model,hash)
 
         destPath = os.path.join(DESTINATION_PATH,hash,'raw')
         if not os.path.exists(destPath):
             os.makedirs(destPath)
         else:
-	    print('Found a directory with a given has, skipping')
-	    continue
+            print('Found a directory with a given has, skipping')
+            continue
             # print("Hasing function produced a hash that exists in the output directory, exiting")
             # exit()
 
         json = None
         files = os.listdir(fullPath)
-	for file in files:
+        for file in files:
             if file.endswith('.json'):
                 jsonFile = os.path.join(DIGIMATION_PATH,model,file)
                 json = read_model_json(jsonFile)
@@ -191,6 +220,7 @@ def get_hash(dirn):
 
 
 if __name__ == '__main__':
+    consolidate_open3dmodel()
     consolidate_digimation()
     consolidate_archibase()
     consolidate_cgtrader()
