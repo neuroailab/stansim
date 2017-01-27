@@ -11,7 +11,7 @@ base_url = "https://api.cgtrader.com"
 client_id = os.environ['CGTRADER_ID']
 client_secret = os.environ['CGTRADER_SECRET']
 
-db_dir = './'
+db_dir = '/mnt/data/stansim_models/raw_models/download_cgtrader'
 				
 
 class CGTraderClient():
@@ -107,7 +107,7 @@ class CGTraderClient():
 
 
     def save_model_file(self,modelID,fileID, fileName):
-        data = {
+	data = {
             'grant_type': 'client_credentials',
             'redirect_uri': '..'
             }
@@ -154,8 +154,10 @@ if __name__ == '__main__':
             
                 # Save all the files for a given model
                 for fls in mdl["files"]:
-                    fName = os.path.join(saveDir,fls["name"])
-                    A.save_model_file(mdl["id"],fls["id"],fName)
+                   if fls["name"] == None:
+			continue 
+		   fName = os.path.join(saveDir,fls["name"])
+                   A.save_model_file(mdl["id"],fls["id"],fName)
 
                 print "Done!"
                 

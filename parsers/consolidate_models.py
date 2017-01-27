@@ -4,11 +4,20 @@ import hashlib
 import shutil
 import json
 
-CGTRADER_PATH = '/Volumes/Stansim/stansim_models/raw_models/download_cgtrader'
-DIGIMATION_PATH = '/Volumes/Stansim/stansim_models/raw_models/digimation'
-ARCHIBASE_PATH = '/Volumes/Stansim/stansim_models/raw_models/download_archibase'
+# Local computer
+# CGTRADER_PATH = '/Volumes/Stansim/stansim_models/raw_models/download_cgtrader'
+# DIGIMATION_PATH = '/Volumes/Stansim/stansim_models/raw_models/digimation'
+# ARCHIBASE_PATH = '/Volumes/Stansim/stansim_models/raw_models/download_archibase'
 
-DESTINATION_PATH = '/Volumes/Stansim/stansim_models/consolidated_models/'
+# DESTINATION_PATH = '/Volumes/Stansim/stansim_models/consolidated_models/'
+
+
+# Kanefsky
+CGTRADER_PATH = '/mnt/falas_stansim/stansim_models/raw_models/download_cgtrader'
+DIGIMATION_PATH = '/mnt/falas_stansim/stansim_models/raw_models/digimation'
+ARCHIBASE_PATH = '/mnt/falas_stansim/stansim_models/raw_models/download_archibase'
+
+DESTINATION_PATH = '/mnt/falas_stansim/stansim_models/consolidated_models'
 
 # There is a separate function to consolidate each database,
 # beacuse each one is different ...
@@ -34,7 +43,10 @@ def consolidate_cgtrader():
     
     for model in models:
         fullPath = os.path.join(CGTRADER_PATH,model)
-        hash = get_hash(fullPath)
+        if os.path.isfile(fullPath):
+		continue
+
+	hash = get_hash(fullPath)
         print "%s : %s" % (model,hash)
         
         destPath = os.path.join(DESTINATION_PATH,hash,'raw')
@@ -122,19 +134,23 @@ def consolidate_digimation():
 
     for model in models:
         fullPath = os.path.join(DIGIMATION_PATH,model)
-        hash = get_hash(fullPath)
+        if os.path.isfile(fullPath):
+		continue
+	hash = get_hash(fullPath)
         print "%s : %s" % (model,hash)
 
         destPath = os.path.join(DESTINATION_PATH,hash,'raw')
         if not os.path.exists(destPath):
             os.makedirs(destPath)
         else:
-            print("Hasing function produced a hash that exists in the output directory, exiting")
-            exit()
+	    print('Found a directory with a given has, skipping')
+	    continue
+            # print("Hasing function produced a hash that exists in the output directory, exiting")
+            # exit()
 
         json = None
         files = os.listdir(fullPath)
-        for file in files:
+	for file in files:
             if file.endswith('.json'):
                 jsonFile = os.path.join(DIGIMATION_PATH,model,file)
                 json = read_model_json(jsonFile)
