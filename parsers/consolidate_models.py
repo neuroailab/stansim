@@ -78,14 +78,26 @@ def consolidate_cgtrader():
         print "%s : %s" % (model,hash)
         
         destPath = os.path.join(DESTINATION_PATH,hash,'raw')
+        
+        
         if not os.path.exists(destPath):
             os.makedirs(destPath)
         else:
-            print("Hasing function produced a hash that exists in the output directory, exiting")
-            exit()
+            shutil.rmtree(destPath)
+            
+            # print("Hasing function produced a hash that exists in the output directory, exiting")
+            # exit()
     
         json = None
         files = os.listdir(fullPath)
+        
+        if len(files) <= 1:
+            # Only a single file in the directory, presumably the .json
+            # Ignore this model.
+            continue
+                
+        os.makedirs(destPath)
+        
         for file in files:
             if file.endswith('.json'):
                 jsonFile = os.path.join(CGTRADER_PATH,model,file)
@@ -220,7 +232,7 @@ def get_hash(dirn):
 
 
 if __name__ == '__main__':
-    consolidate_open3dmodel()
-    consolidate_digimation()
-    consolidate_archibase()
+    # consolidate_open3dmodel()
+    # consolidate_digimation()
+    # consolidate_archibase()
     consolidate_cgtrader()

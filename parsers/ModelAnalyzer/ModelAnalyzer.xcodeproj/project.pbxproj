@@ -11,6 +11,7 @@
 		E222C0311E294DA100B9C541 /* libboost_filesystem.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = E222C02D1E294AE300B9C541 /* libboost_filesystem.dylib */; };
 		E222C0351E294DAB00B9C541 /* libboost_system.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = E222C0331E294DAB00B9C541 /* libboost_system.dylib */; };
 		E222C0391E2953CC00B9C541 /* libassimp.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = E222C0381E2953CC00B9C541 /* libassimp.dylib */; };
+		E26422D31E5522ED00D8901B /* unzipper.cpp in Sources */ = {isa = PBXBuildFile; fileRef = E26422D11E5522EC00D8901B /* unzipper.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -34,6 +35,8 @@
 		E222C0331E294DAB00B9C541 /* libboost_system.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libboost_system.dylib; path = ../../../../../../../usr/local/lib/libboost_system.dylib; sourceTree = "<group>"; };
 		E222C0361E29532B00B9C541 /* libassimp.3.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libassimp.3.dylib; path = ../../../../../../../usr/local/lib/libassimp.3.dylib; sourceTree = "<group>"; };
 		E222C0381E2953CC00B9C541 /* libassimp.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libassimp.dylib; path = ../../../../../../../usr/local/lib/libassimp.dylib; sourceTree = "<group>"; };
+		E26422D11E5522EC00D8901B /* unzipper.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = unzipper.cpp; sourceTree = "<group>"; };
+		E26422D21E5522EC00D8901B /* unzipper.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = unzipper.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -70,6 +73,8 @@
 		E222C0231E2946ED00B9C541 /* ModelAnalyzer */ = {
 			isa = PBXGroup;
 			children = (
+				E26422D11E5522EC00D8901B /* unzipper.cpp */,
+				E26422D21E5522EC00D8901B /* unzipper.h */,
 				E222C0241E2946ED00B9C541 /* main.cpp */,
 			);
 			path = ModelAnalyzer;
@@ -145,6 +150,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E26422D31E5522ED00D8901B /* unzipper.cpp in Sources */,
 				E222C0251E2946ED00B9C541 /* main.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -192,7 +198,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = /usr/local/include;
+				HEADER_SEARCH_PATHS = (
+					"/usr/local/include/**",
+					/usr/local/include/minizip,
+				);
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = YES;
@@ -201,6 +210,7 @@
 					"-lboost_system",
 					"-lboost_filesystem",
 					"-lassimp",
+					"-lminizip",
 				);
 				SDKROOT = macosx;
 			};
@@ -240,7 +250,10 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				HEADER_SEARCH_PATHS = /usr/local/include;
+				HEADER_SEARCH_PATHS = (
+					"/usr/local/include/**",
+					/usr/local/include/minizip,
+				);
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;
 				MACOSX_DEPLOYMENT_TARGET = 10.11;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -248,6 +261,7 @@
 					"-lboost_system",
 					"-lboost_filesystem",
 					"-lassimp",
+					"-lminizip",
 				);
 				SDKROOT = macosx;
 			};
@@ -257,9 +271,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
-				HEADER_SEARCH_PATHS = /usr/local/include;
+				HEADER_SEARCH_PATHS = (
+					/usr/local/include,
+					/usr/local/include/minizip,
+				);
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = "-lminizip";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Debug;
@@ -268,9 +285,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = "$(ARCHS_STANDARD)";
-				HEADER_SEARCH_PATHS = /usr/local/include;
+				HEADER_SEARCH_PATHS = (
+					/usr/local/include,
+					/usr/local/include/minizip,
+				);
 				LIBRARY_SEARCH_PATHS = /usr/local/lib;
-				OTHER_LDFLAGS = "";
+				OTHER_LDFLAGS = "-lminizip";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 			};
 			name = Release;
@@ -294,6 +314,7 @@
 				E222C02A1E2946ED00B9C541 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
