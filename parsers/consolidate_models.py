@@ -77,14 +77,16 @@ def consolidate_cgtrader():
         hash = get_hash(fullPath)
         print "%s : %s" % (model,hash)
         
+        modelPath = os.path.join(DESTINATION_PATH,hash)
         destPath = os.path.join(DESTINATION_PATH,hash,'raw')
+        
         
         
         if not os.path.exists(destPath):
             os.makedirs(destPath)
         else:
             print "Destination path exists, removing"
-            shutil.rmtree(destPath)
+            shutil.rmtree(modelPath)
             
             # print("Hasing function produced a hash that exists in the output directory, exiting")
             # exit()
