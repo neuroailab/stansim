@@ -18,6 +18,9 @@
 int main(int argc, const char * argv[]) {
     // insert code here...
     
+    Assimp::Importer importer;
+    Assimp::Exporter exporter;
+    
     boost::filesystem::path collectionDirectory(argv[1]);
     std::vector<boost::filesystem::path> modelPaths;
     copy(boost::filesystem::directory_iterator(collectionDirectory),boost::filesystem::directory_iterator(),back_inserter(modelPaths));
@@ -32,11 +35,19 @@ int main(int argc, const char * argv[]) {
         boost::filesystem::path rawDataDirectory(modelDirectory / "raw");
         
         boost::filesystem::path tempDataDirectory(modelDirectory / "tmp");
+        
+        if (boost::filesystem::is_directory(tempDataDirectory))
+        {
+            // Remove the tmp folder if it exists
+            boost::filesystem::remove_all(tempDataDirectory);
+        }
         boost::filesystem::create_directory(tempDataDirectory);
         
         
+        
         // List all the files in raw directory, and unzip every single one of them into
-        // tmp
+        // tmp folder. If a file is not an archive, simply copy it to the tmp folder.
+        // This way moving forward we only are working from stuff inside the tmp folder.
         
         std::vector<boost::filesystem::path> filePaths;
         copy(boost::filesystem::directory_iterator(rawDataDirectory),boost::filesystem::directory_iterator(),back_inserter(filePaths));
@@ -49,8 +60,47 @@ int main(int argc, const char * argv[]) {
                 fileUnzipper.open(it->c_str());
                 fileUnzipper.extractToDirectory(tempDataDirectory.c_str());
                 fileUnzipper.close();
+            } else
+            {
+                boost::filesystem::path destinationFile(modelDirectory / "tmp" / it->filename());
+                boost::filesystem::copy_file(*it,destinationFile);
             }
         }
+        
+        
+        // Now we can try to read in a model from the tmp folder
+        // fix it and save it to a model subfolder
+        filePaths.clear();
+        copy(boost::filesystem::directory_iterator(tempDataDirectory),boost::filesystem::directory_iterator(),back_inserter(filePaths));
+        for (std::vector<boost::filesystem::path>::const_iterator it = filePaths.begin(); it != filePaths.end(); ++it)
+        {
+            if ((it->extension() != ".obj") && (it->extension() != ".OBJ")) continue;
+        
+            std::cout << "Converting object file: " << it->c_str() <<std::endl;
+            
+            
+            const aiScene* scene = importer.ReadFile(it->c_str(),
+                                                     aiProcess_CalcTangentSpace       |
+                                                     aiProcess_Triangulate            |
+                                                     aiProcess_JoinIdenticalVertices  |
+                                                     aiProcess_SortByPType);
+            
+            
+            boost::filesystem::path modelTargetPath( modelDirectory / "obj");
+            boost::filesystem::create_directory(modelTargetPath);
+            
+            boost::filesystem::path modelTargetFileName(modelTargetPath / "model");
+            exporter.Export(scene, "obj", modelTargetFileName.c_str());
+            
+            boost::filesystem::path renamedModel(modelTargetFileName);
+            renamedModel += ".obj";
+            boost::filesystem::rename(modelTargetFileName, renamedModel);
+
+            break;
+            
+        }
+        
+        
         
     }
     

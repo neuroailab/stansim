@@ -83,6 +83,7 @@ def consolidate_cgtrader():
         if not os.path.exists(destPath):
             os.makedirs(destPath)
         else:
+            print "Destination path exists, removing"
             shutil.rmtree(destPath)
             
             # print("Hasing function produced a hash that exists in the output directory, exiting")
@@ -94,6 +95,7 @@ def consolidate_cgtrader():
         if len(files) <= 1:
             # Only a single file in the directory, presumably the .json
             # Ignore this model.
+            print "One file in model directory, skipping."
             continue
                 
         os.makedirs(destPath)

@@ -27,20 +27,34 @@ namespace ziputils
 
     void unzipper::extractToDirectory(const char *directoryName)
     {
-        std::vector<std::string> fileNames = getFilenames();
         
+        // First check for all the subfolders and create the directory structure
+        std::vector<std::string> dirNames = getFolders();
+        for (std::vector<std::string>::iterator it = dirNames.begin(); it!=dirNames.end(); ++it)
+        {
+            boost::filesystem::path archivePath(it->c_str());
+            boost::filesystem::path dirPath(directoryName / archivePath);
+            boost::filesystem::create_directories(dirPath);
+        }
+        
+        // Now decode and write files
+        // File names are relative to the root directory of the archive.
+        std::vector<std::string> fileNames = getFilenames();
         for (std::vector<std::string>::iterator it = fileNames.begin(); it!=fileNames.end(); ++it)
         {
-            openEntry((*it).c_str());
+            // std::cout << "File " << it->c_str() << std::endl;
+            openEntry(it->c_str());
             
             std::ofstream outputFile;
             boost::filesystem::path outputFileDirectory(directoryName);
-            boost::filesystem::path outputFileName((*it).c_str());
+            boost::filesystem::path outputFileName(it->c_str());
             boost::filesystem::path outputFilePath(outputFileDirectory / outputFileName);
+            
+            
             
             outputFile.open(outputFilePath.c_str());
             
-            *this >> outputFile;
+            (*this) >> outputFile;
         }
         
     }
