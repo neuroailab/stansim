@@ -208,9 +208,13 @@ namespace ziputils
 	{
 		if ( isOpenEntry() )
 		{
-			unsigned int size = getEntrySize();
-			char* buf = new char[size];
-			size = unzReadCurrentFile( zipFile_, buf, size );
+			unsigned int sizeEntry = getEntrySize();
+			char* buf = new char[sizeEntry];
+			unsigned int size = unzReadCurrentFile( zipFile_, buf, sizeEntry );
+            
+            // Something is wrong
+            if (size > sizeEntry) return *this;
+            
 			if ( size > 0 )
 			{
 				os.write( buf, size );
