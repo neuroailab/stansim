@@ -17,8 +17,11 @@ clc;
 
 ieInit;
 
-modelDirectory = fullfile('/','home','hblasins','testOutputFolder');
-destDirectory = fullfile('/','home','hblasins','testOutputRenderings');
+% modelDirectory = fullfile('/','home','hblasins','testOutputFolder');
+% destDirectory = fullfile('/','home','hblasins','testOutputRenderings');
+modelDirectory = fullfile('/','Users','hblasinski','Desktop','testOutputFolder');
+destDirectory = fullfile('/','Users','hblasinski','Desktop','testOutputRenderings');
+
 if exist(destDirectory,'dir') == 0,
     mkdir(destDirectory);
 end

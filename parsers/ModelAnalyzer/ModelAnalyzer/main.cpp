@@ -17,6 +17,9 @@
 #include <assimp/Exporter.hpp>
 #include "unzipper.h"
 
+#include <archive_entry.h>
+#include <archive.h>
+
 // Only the formats that are 'fully' suppored by ASSIMP
 std::set<std::string> assimpInputFormats = {".fbx",".dae",".glb",".blend",".3ds",".ase",".obj",".ifc",".zgl",".xgl",\
                                             ".ply",".lwo",".lws",".lxo",".stl",".x","ac",".ms3d",".bvh",".xml",".irrmesh",\
@@ -29,6 +32,83 @@ std::map<std::string,int> missingTexturesCount;
 std::map<std::string,int> assimpImportErrors;
 
 std::set<std::string> formatsToGenerate = {".obj",".fbx",".3ds",".dae",".stl"};
+
+static int copy_data(struct archive *ar, struct archive *aw)
+{
+    int r;
+    const void *buff;
+    size_t size;
+    la_int64_t offset;
+    
+    for (;;) {
+        r = archive_read_data_block(ar, &buff, &size, &offset);
+        if (r == ARCHIVE_EOF)
+            return (ARCHIVE_OK);
+        if (r < ARCHIVE_OK)
+            return (r);
+        r = archive_write_data_block(aw, buff, size, offset);
+        if (r < ARCHIVE_OK) {
+            fprintf(stderr, "%s\n", archive_error_string(aw));
+            return (r);
+        }
+    }
+}
+
+
+static void extract(const char *filename)
+{
+    struct archive *a;
+    struct archive *ext;
+    struct archive_entry *entry;
+    int flags;
+    int r;
+    
+    /* Select which attributes we want to restore. */
+    flags = ARCHIVE_EXTRACT_TIME;
+    flags |= ARCHIVE_EXTRACT_PERM;
+    flags |= ARCHIVE_EXTRACT_ACL;
+    flags |= ARCHIVE_EXTRACT_FFLAGS;
+    
+    a = archive_read_new();
+    archive_read_support_format_all(a);
+    archive_read_support_compression_all(a);
+    ext = archive_write_disk_new();
+    archive_write_disk_set_options(ext, flags);
+    archive_write_disk_set_standard_lookup(ext);
+    if ((r = archive_read_open_filename(a, filename, 10240)))
+        exit(1);
+    for (;;) {
+        r = archive_read_next_header(a, &entry);
+        if (r == ARCHIVE_EOF)
+            break;
+        if (r < ARCHIVE_OK)
+            fprintf(stderr, "%s\n", archive_error_string(a));
+        if (r < ARCHIVE_WARN)
+            exit(1);
+        r = archive_write_header(ext, entry);
+        if (r < ARCHIVE_OK)
+            fprintf(stderr, "%s\n", archive_error_string(ext));
+        else if (archive_entry_size(entry) > 0) {
+            r = copy_data(a, ext);
+            if (r < ARCHIVE_OK)
+                fprintf(stderr, "%s\n", archive_error_string(ext));
+            if (r < ARCHIVE_WARN)
+                exit(1);
+        }
+        r = archive_write_finish_entry(ext);
+        if (r < ARCHIVE_OK)
+            fprintf(stderr, "%s\n", archive_error_string(ext));
+        if (r < ARCHIVE_WARN)
+            exit(1);
+    }
+    archive_read_close(a);
+    archive_read_free(a);
+    archive_write_close(ext);
+    archive_write_free(ext);
+    exit(0);
+}
+
+
 
 
 boost::filesystem::path findFile(const boost::filesystem::path& dir_path, const boost::filesystem::path& file_name) {
@@ -80,6 +160,18 @@ std::set<std::string> checkModelTypes(boost::filesystem::path dirPath)
 }
 
 
+boost::filesystem::path cleanUpName(boost::filesystem::path in)
+{
+    std::string input = in.string();
+    int pos = input.rfind('\\');
+    boost::filesystem::path res(input.substr(pos+1));
+    
+    //std::cout << in.string() << " --> " << res.string() << std::endl;
+    
+    return res;
+    
+}
+
 bool fixTextures(const aiScene* scene, boost::filesystem::path assetDirectory, boost::filesystem::path modelDirectory, std::string sourceFormat )
 {
     // Return true if at least one of the textures has been found.
@@ -103,20 +195,21 @@ bool fixTextures(const aiScene* scene, boost::filesystem::path assetDirectory, b
         aiString s;
         if(AI_SUCCESS == mat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0),s)) {
             totalTexturesCount[sourceFormat]++;
-            std::cout << "        map_Kd: " << s.data;
+            std::cout << "        map_Kd: " << s.data ;
             boost::filesystem::path assetPath(s.data);
             boost::filesystem::path assetName = assetPath.filename();
+            assetName = cleanUpName(assetName);
             
             // Find file recursively
             boost::filesystem::path oldPath = findFile(assetDirectory,assetName);
             
-            boost::filesystem::path newDirPath(modelDirectory/ "obj" / "images");
-            boost::filesystem::path newPath(newDirPath / assetName);
+            boost::filesystem::path newPathDir(modelDirectory/ "obj" / "images");
+            boost::filesystem::path newPath(newPathDir / assetName);
             boost::filesystem::path newRelativePath("./images" /assetName);
             
             if (!boost::filesystem::exists(newPath) && boost::filesystem::exists(oldPath))
             {
-                boost::filesystem::create_directories(newDirPath);
+                boost::filesystem::create_directories(newPathDir);
                 boost::filesystem::copy_file(oldPath, newPath);
                 std::cout << " (FOUND)" << std::endl;
                 kd = true;
@@ -134,17 +227,19 @@ bool fixTextures(const aiScene* scene, boost::filesystem::path assetDirectory, b
             std::cout << "        map_Ka: " << s.data;
             boost::filesystem::path assetPath(s.data);
             boost::filesystem::path assetName = assetPath.filename();
+            assetName = cleanUpName(assetName);
+
             
             // Find file recursively
             boost::filesystem::path oldPath = findFile(assetDirectory,assetName);
             
-            boost::filesystem::path newDirPath(modelDirectory/ "obj" / "images");
-            boost::filesystem::path newPath(newDirPath / assetName);
+            boost::filesystem::path newPathDir(modelDirectory/ "obj" / "images");
+            boost::filesystem::path newPath(newPathDir / assetName);
             boost::filesystem::path newRelativePath("./images" /assetName);
             
             if (!boost::filesystem::exists(newPath) && boost::filesystem::exists(oldPath))
             {
-                boost::filesystem::create_directories(newDirPath);
+                boost::filesystem::create_directories(newPathDir);
                 boost::filesystem::copy_file(oldPath, newPath);
                 std::cout << " (FOUND)" << std::endl;
                 ka = true;
@@ -161,17 +256,19 @@ bool fixTextures(const aiScene* scene, boost::filesystem::path assetDirectory, b
             std::cout << "        map_Ks: " << s.data;
             boost::filesystem::path assetPath(s.data);
             boost::filesystem::path assetName = assetPath.filename();
+            assetName = cleanUpName(assetName);
+
             
             // Find file recursively
             boost::filesystem::path oldPath = findFile(assetDirectory,assetName);
             
-            boost::filesystem::path newDirPath(modelDirectory/ "obj" / "images");
-            boost::filesystem::path newPath(newDirPath / assetName);
+            boost::filesystem::path newPathDir(modelDirectory/ "obj" / "images");
+            boost::filesystem::path newPath(newPathDir / assetName);
             boost::filesystem::path newRelativePath("./images" /assetName);
             
             if (!boost::filesystem::exists(newPath) && boost::filesystem::exists(oldPath))
             {
-                boost::filesystem::create_directories(newDirPath);
+                boost::filesystem::create_directories(newPathDir);
                 boost::filesystem::copy_file(oldPath, newPath);
                 std::cout << " (FOUND)" << std::endl;
                 ks = true;
@@ -189,17 +286,19 @@ bool fixTextures(const aiScene* scene, boost::filesystem::path assetDirectory, b
             std::cout << "        map_Ns: " << s.data;
             boost::filesystem::path assetPath(s.data);
             boost::filesystem::path assetName = assetPath.filename();
+            assetName = cleanUpName(assetName);
+
             
             // Find file recursively
             boost::filesystem::path oldPath = findFile(assetDirectory,assetName);
             
-            boost::filesystem::path newDirPath(modelDirectory/ "obj" / "images");
-            boost::filesystem::path newPath(newDirPath / assetName);
+            boost::filesystem::path newPathDir(modelDirectory/ "obj" / "images");
+            boost::filesystem::path newPath(newPathDir / assetName);
             boost::filesystem::path newRelativePath("./images" /assetName);
             
             if (!boost::filesystem::exists(newPath) && boost::filesystem::exists(oldPath))
             {
-                boost::filesystem::create_directories(newDirPath);
+                boost::filesystem::create_directories(newPathDir);
                 boost::filesystem::copy_file(oldPath, newPath);
                 std::cout << " (FOUND)" << std::endl;
                 ns = true;
@@ -217,17 +316,19 @@ bool fixTextures(const aiScene* scene, boost::filesystem::path assetDirectory, b
             std::cout << "        map_d: " << s.data;
             boost::filesystem::path assetPath(s.data);
             boost::filesystem::path assetName = assetPath.filename();
+            assetName = cleanUpName(assetName);
+
             
             // Find file recursively
             boost::filesystem::path oldPath = findFile(assetDirectory,assetName);
             
-            boost::filesystem::path newDirPath(modelDirectory/ "obj" / "images");
-            boost::filesystem::path newPath(newDirPath / assetName);
+            boost::filesystem::path newPathDir(modelDirectory/ "obj" / "images");
+            boost::filesystem::path newPath(newPathDir / assetName);
             boost::filesystem::path newRelativePath("./images" /assetName);
             
             if (!boost::filesystem::exists(newPath) && boost::filesystem::exists(oldPath))
             {
-                boost::filesystem::create_directories(newDirPath);
+                boost::filesystem::create_directories(newPathDir);
                 boost::filesystem::copy_file(oldPath, newPath);
                 std::cout << " (FOUND)" << std::endl;
                 d = true;
@@ -246,17 +347,19 @@ bool fixTextures(const aiScene* scene, boost::filesystem::path assetDirectory, b
             std::cout << "        Height map: " << s.data;
             boost::filesystem::path assetPath(s.data);
             boost::filesystem::path assetName = assetPath.filename();
+            assetName = cleanUpName(assetName);
+
             
             // Find file recursively
             boost::filesystem::path oldPath = findFile(assetDirectory,assetName);
             
-            boost::filesystem::path newDirPath(modelDirectory/ "obj" / "images");
-            boost::filesystem::path newPath(newDirPath / assetName);
+            boost::filesystem::path newPathDir(modelDirectory/ "obj" / "images");
+            boost::filesystem::path newPath(newPathDir / assetName);
             boost::filesystem::path newRelativePath("./images" /assetName);
             
             if (!boost::filesystem::exists(newPath) && boost::filesystem::exists(oldPath))
             {
-                boost::filesystem::create_directories(newDirPath);
+                boost::filesystem::create_directories(newPathDir);
                 boost::filesystem::copy_file(oldPath, newPath);
                 std::cout << " (FOUND)" << std::endl;
                 height = true;
@@ -273,17 +376,19 @@ bool fixTextures(const aiScene* scene, boost::filesystem::path assetDirectory, b
             std::cout << "        Normals map: " << s.data;
             boost::filesystem::path assetPath(s.data);
             boost::filesystem::path assetName = assetPath.filename();
+            assetName = cleanUpName(assetName);
+
             
             // Find file recursively
             boost::filesystem::path oldPath = findFile(assetDirectory,assetName);
             
-            boost::filesystem::path newDirPath(modelDirectory/ "obj" / "images");
-            boost::filesystem::path newPath(newDirPath / assetName);
+            boost::filesystem::path newPathDir(modelDirectory/ "obj" / "images");
+            boost::filesystem::path newPath(newPathDir / assetName);
             boost::filesystem::path newRelativePath("./images" /assetName);
             
             if (!boost::filesystem::exists(newPath) && boost::filesystem::exists(oldPath))
             {
-                boost::filesystem::create_directories(newDirPath);
+                boost::filesystem::create_directories(newPathDir);
                 boost::filesystem::copy_file(oldPath, newPath);
                 std::cout << " (FOUND)" << std::endl;
                 normals = true;
@@ -322,13 +427,13 @@ void writeModelToObj(boost::filesystem::path dirPath, boost::filesystem::path mo
      
          std::cout << "    Converting object file: " << it->c_str() <<std::endl;
      
-     
+         /*
          const aiScene* scene = importer.ReadFile(it->c_str(),
                                                   aiProcess_CalcTangentSpace       |
-                                                  aiProcess_Triangulate            |
                                                   aiProcess_JoinIdenticalVertices  |
                                                   aiProcess_SortByPType);
-     
+          */
+         const aiScene* scene = importer.ReadFile(it->c_str(),aiProcess_GenNormals);
      
          if (scene == NULL)
          {
@@ -338,7 +443,7 @@ void writeModelToObj(boost::filesystem::path dirPath, boost::filesystem::path mo
          }
          
          // If we have any textures we will write out that file
-         if (writeToFile == false)
+         if (writeToFile == true)
          {
              std::cout << "    A model with textures: Writing out" << std::endl;
              writeToFile = fixTextures(scene,dirPath,modelDirectory,sourceFormat);
@@ -373,7 +478,7 @@ void writeModelToObj(boost::filesystem::path dirPath, boost::filesystem::path mo
 int main(int argc, const char * argv[]) {
     // insert code here...
     
-    boost::filesystem::path outputCollectionDirectory = "/Users/hblasinski/Desktop/SelectedCGTraderModels-Full";
+    boost::filesystem::path outputCollectionDirectory = "/Users/hblasinski/Desktop/CGTrader-subset-models";
     boost::filesystem::path collectionDirectory(argv[1]);
     std::vector<boost::filesystem::path> modelPaths;
     copy(boost::filesystem::directory_iterator(collectionDirectory),boost::filesystem::directory_iterator(),back_inserter(modelPaths));
@@ -412,8 +517,13 @@ int main(int argc, const char * argv[]) {
         copy(boost::filesystem::directory_iterator(rawDataDirectory),boost::filesystem::directory_iterator(),back_inserter(filePaths));
         for (std::vector<boost::filesystem::path>::const_iterator it = filePaths.begin(); it != filePaths.end(); ++it)
         {
+            
+            
+            
+            
             if ((it->extension() == ".zip") || (it->extension() == ".ZIP"))
             {
+                /*
                 std::cout << "    Unzipping file: " << it->c_str() << std::endl;
                 try {
                     ziputils::unzipper fileUnzipper;
@@ -424,7 +534,24 @@ int main(int argc, const char * argv[]) {
                 {
                     std::cout << "    Unzipping error:" << std::endl;
                 }
-            } else
+                 
+                 */
+                
+                std::cout << "    Unipping file: " << it->c_str() << std::endl;
+                
+                std::string cmd = "/usr/bin/unzip -u -j -o \"" + std::string(it->c_str()) + "\" -d " + std::string(tempDataDirectory.c_str());
+                system(cmd.c_str());
+                
+                 
+            } else if ((it->extension() == ".rar") || (it->extension() == ".RAR"))
+            {
+                std::cout << "    Unraring file: " << it->c_str() << std::endl;
+                
+                std::string cmd = "/usr/local/bin/unrar e -y \"" + std::string(it->c_str()) + "\" " + std::string(tempDataDirectory.c_str());
+                system(cmd.c_str());
+                //xtract(it->c_str());
+                
+            }   else
             {
                 boost::filesystem::path destinationFile(modelDirectory / "tmp" / it->filename());
                 // We can't overwrite files.
@@ -435,25 +562,53 @@ int main(int argc, const char * argv[]) {
             }
         }
         
+        // Recursively fix all the file extensions in the tmp directory to lower case
+        std::vector<std::pair<boost::filesystem::path,boost::filesystem::path>> renameFiles;
+        
+        boost::filesystem::recursive_directory_iterator dirIter(tempDataDirectory), end;
+        while (dirIter != end)
+        {
+            if (boost::filesystem::is_regular_file(dirIter->path()))
+            {
+                //std::cout << dirIter->path() << std::endl;
+                boost::filesystem::path lowerCase( dirIter->path().parent_path() / dirIter->path().stem());
+                lowerCase += boost::algorithm::to_lower_copy(dirIter->path().extension().string());
+                //std::cout << lowerCase << std::endl;
+                
+                renameFiles.push_back(std::pair<boost::filesystem::path,boost::filesystem::path>(dirIter->path(),lowerCase));
+                
+                //boost::filesystem::rename(dirIter->path(),lowerCase);
+                
+            }
+            ++dirIter;
+        }
+        
+        for(std::vector<std::pair<boost::filesystem::path,boost::filesystem::path>>::iterator it=renameFiles.begin(); it != renameFiles.end(); ++it)
+        {
+            boost::filesystem::rename(it->first,it->second);
+        }
+        
+        
+        
         
         // Now we can try to read in a model from the tmp folder
         // fix it and save it to a model subfolder
-        std::set<std::string> modelTypes = checkModelTypes(tempDataDirectory);
+        //std::set<std::string> modelTypes = checkModelTypes(tempDataDirectory);
         
         
-        int minFormatCount = INT_MAX;
-        for (std::set<std::string>::iterator it = formatsToGenerate.begin(); it != formatsToGenerate.end(); ++it)
-        {
-            minFormatCount = minFormatCount > globalFormatCount[*it] ? globalFormatCount[*it] : minFormatCount;
-        }
+        //int minFormatCount = INT_MAX;
+        //for (std::set<std::string>::iterator it = formatsToGenerate.begin(); it != formatsToGenerate.end(); ++it)
+        //{
+        //    minFormatCount = minFormatCount > globalFormatCount[*it] ? globalFormatCount[*it] : minFormatCount;
+        //}
         
-        bool generateModel = (minFormatCount < 50);
+        //bool generateModel = (minFormatCount < 50);
         
         for (std::set<std::string>::iterator it = formatsToGenerate.begin(); it != formatsToGenerate.end(); ++it)
         {
             
             boost::filesystem::path outputPath(outputCollectionDirectory / it->substr(1) / modelHash);
-            writeModelToObj(tempDataDirectory, outputPath, *it, generateModel);
+            writeModelToObj(tempDataDirectory, outputPath, *it, true);
         }
         
         
